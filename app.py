@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_cors import cross_origin
 
 load_dotenv()
 app = Flask(__name__)
@@ -89,6 +90,7 @@ Respond strictly in JSON format as:
 
 
 @app.route('/api/summarize', methods=['POST'])
+@cross_origin(origins=["http://localhost:3000", "https://your-frontend-domain.com"])
 def api_summarize():
     data = request.get_json()
     video_url = data.get('videoUrl', '')
