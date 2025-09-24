@@ -97,7 +97,8 @@ def summarize():
         if not data or "video_url" not in data:
             return jsonify({"error": "Missing video_url"}), 400
 
-        video_url = data["video_url"]
+        video_url = data.get('video_url') or data.get('videoUrl')
+
 
         # 🚨 Dummy response first, test CORS works
         return jsonify({
