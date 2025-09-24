@@ -10,7 +10,7 @@ from flask_cors import cross_origin
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Replace with your actual API key (or load from environment)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
@@ -91,19 +91,21 @@ Respond strictly in JSON format as:
 
 @app.route('/api/summarize', methods=['POST'])
 @cross_origin(origins=["http://localhost:3000", "https://your-frontend-domain.com"])
-def api_summarize():
-    data = request.get_json()
-    video_url = data.get('videoUrl', '')
+def summarize():
+    try:
+        data = request.get_json()
+        if not data or "video_url" not in data:
+            return jsonify({"error": "Missing video_url"}), 400
 
-    if not video_url:
-        return jsonify({"error": "YouTube URL missing"}), 400
+        video_url = data["video_url"]
 
-    result = generate_gemini_summary(video_url)
-
-    if result:
-        return jsonify(result)
-    else:
-        return jsonify({"error": "Failed to generate summary"}), 500
+        # 🚨 Dummy response first, test CORS works
+        return jsonify({
+            "summary": f"Summary for {video_url}",
+            "key_takeaways": "Takeaways..."
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
