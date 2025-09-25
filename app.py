@@ -88,25 +88,36 @@ Respond strictly in JSON format as:
         print("Gemini API error:", response.text)
         return None
 
-
 @app.route('/api/summarize', methods=['POST'])
 @cross_origin(origins=["http://localhost:3000", "https://your-frontend-domain.com"])
 def summarize():
     try:
         data = request.get_json()
-        if not data or "video_url" not in data:
+
+        # Accept both video_url and videoUrl
+        video_url = data.get("video_url") or data.get("videoUrl")
+        if not video_url:
             return jsonify({"error": "Missing video_url"}), 400
 
-        video_url = data.get('video_url') or data.get('videoUrl')
-
-
-        # 🚨 Dummy response first, test CORS works
+        # 🚨 Dummy response first, confirm frontend-backend works
         return jsonify({
             "summary": f"Summary for {video_url}",
-            "key_takeaways": "Takeaways..."
+            "keyTakeaways": [
+                {"heading": "Point 1", "content": "Example takeaway"},
+                {"heading": "Point 2", "content": "Another takeaway"}
+            ]
         })
+
+        # 🔹 Later you can uncomment this to call Gemini
+        # result = generate_gemini_summary(video_url)
+        # if result:
+        #     return jsonify(result)
+        # else:
+        #     return jsonify({"error": "Failed to generate summary"}), 500
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == '__main__':
