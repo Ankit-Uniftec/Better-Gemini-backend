@@ -93,30 +93,21 @@ Respond strictly in JSON format as:
 def summarize():
     try:
         data = request.get_json()
-
-        # Accept both video_url and videoUrl
         video_url = data.get("video_url") or data.get("videoUrl")
         if not video_url:
             return jsonify({"error": "Missing video_url"}), 400
 
-        # 🚨 Dummy response first, confirm frontend-backend works
-        return jsonify({
-            "summary": f"Summary for {video_url}",
-            "keyTakeaways": [
-                {"heading": "Point 1", "content": "Example takeaway"},
-                {"heading": "Point 2", "content": "Another takeaway"}
-            ]
-        })
+        # 🔹 Call Gemini now
+        result = generate_gemini_summary(video_url)
 
-        # 🔹 Later you can uncomment this to call Gemini
-        # result = generate_gemini_summary(video_url)
-        # if result:
-        #     return jsonify(result)
-        # else:
-        #     return jsonify({"error": "Failed to generate summary"}), 500
+        if result:
+            return jsonify(result)
+        else:
+            return jsonify({"error": "Failed to generate summary"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 
