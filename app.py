@@ -1,27 +1,28 @@
-
 import os
-import re
 import json
 import requests
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_cors import cross_origin
 
 load_dotenv()
 app = Flask(__name__)
+
+# 🌍 Allow CORS for everyone (all origins)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Replace with your actual API key (or load from environment)
+# Gemini API config
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 GEMINI_API_URL = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}'
 
-def generate_gemini_summary(video_url):
-    headers = {
-        "Content-Type": "application/json"
-    }
 
-    # The text prompt is now separate from the video part
+def generate_gemini_summary(video_url):
+    """
+    Call Gemini API with a video URL (note: Gemini does not directly support YouTube URLs).
+    Ideally, extract transcript/audio first, then send as text/audio.
+    """
+    headers = {"Content-Type": "application/json"}
+
     prompt_text = """
 You are an expert summarizer.
 
@@ -45,19 +46,16 @@ Respond strictly in JSON format as:
 }
 """
 
-    # --- THE CRITICAL MODIFICATION STARTS HERE ---
     data = {
         "contents": [
             {
                 "parts": [
-                    # This part tells Gemini to process the video from the URL
                     {
                         "file_data": {
                             "file_uri": video_url,
-                            "mime_type": "video/mp4" # Specify the MIME type for a video
+                            "mime_type": "video/mp4"
                         }
                     },
-                    # This part is your text prompt
                     {
                         "text": prompt_text
                     }
@@ -65,39 +63,37 @@ Respond strictly in JSON format as:
             }
         ],
         "generationConfig": {
-            "response_mime_type": "application/json" # This is a good practice for JSON mode
+            "response_mime_type": "application/json"
         }
     }
-    # --- THE CRITICAL MODIFICATION ENDS HERE ---
 
     response = requests.post(GEMINI_API_URL, headers=headers, json=data)
 
     if response.status_code == 200:
         result = response.json()
         try:
-            # When you use JSON mode, the response is typically cleaner
             json_response = result['candidates'][0]['content']['parts'][0]['text']
-            # We still do a final check to parse the JSON just in case
             return json.loads(json_response)
-
         except (KeyError, json.JSONDecodeError, IndexError) as e:
-            print("Failed to parse Gemini JSON response:", e)
-            print("Raw Gemini response:", response.text)
+            print("Failed to parse Gemini response:", e)
+            print("Raw response:", response.text)
             return None
     else:
         print("Gemini API error:", response.text)
         return None
 
+
 @app.route('/api/summarize', methods=['POST'])
-@cross_origin(origins=["http://localhost:3000", "https://your-frontend-domain.com"])
 def summarize():
     try:
         data = request.get_json()
+
+        # Accept both snake_case and camelCase
         video_url = data.get("video_url") or data.get("videoUrl")
         if not video_url:
             return jsonify({"error": "Missing video_url"}), 400
 
-        # 🔹 Call Gemini now
+        # 🔹 Call Gemini
         result = generate_gemini_summary(video_url)
 
         if result:
@@ -109,7 +105,7 @@ def summarize():
         return jsonify({"error": str(e)}), 500
 
 
-
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Render uses port from env var
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
